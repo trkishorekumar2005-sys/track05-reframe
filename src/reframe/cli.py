@@ -13,6 +13,10 @@ from reframe.config import load_config
 from reframe.errors import ProcessingError, ReframeError
 from reframe.log import setup_logging
 from reframe.probe import probe
+from reframe.render import render as run_render
+from reframe.resources import PeakMemorySampler, Timer
+from reframe.timeline import load_timeline
+from reframe.validate import validate_output as run_validate_output
 
 
 def handle_cli_error(e: Exception, verbose: bool = False) -> None:
@@ -117,7 +121,47 @@ def run(
     debug_overlay: bool = typer.Option(False, "--debug-overlay", help="Include debug visualization overlay."),
     verbose: bool = typer.Option(False, "--verbose", help="Enable verbose error output."),
 ) -> None:
-    raise ProcessingError(code="not_implemented")
+    setup_logging(out, verbose)
+    cfg = load_config(config, set_)
+
+    total_timer = Timer().start()
+    sampler = PeakMemorySampler().start()
+    try:
+        analysis_timer = Timer().start()
+        timeline_path = run_analyze(input, aspect, out, cfg, start_s=start, end_s=end, resume=resume)
+        analysis_s = analysis_timer.stop()
+
+        render_timer = Timer().start()
+        output_path = out / "output.mp4"
+        run_render(timeline_path, output_path, cfg, debug_overlay=debug_overlay)
+        render_s = render_timer.stop()
+
+        validation = run_validate_output(out)
+    finally:
+        peak_bytes = sampler.stop()
+        total_s = total_timer.stop()
+
+    timeline = load_timeline(timeline_path)
+    clip_duration_s = timeline.segment.end_s - timeline.segment.start_s
+    metrics = {
+        "analysis_s": round(analysis_s, 3),
+        "render_s": round(render_s, 3),
+        "total_s": round(total_s, 3),
+        "clip_duration_s": round(clip_duration_s, 3),
+        "realtime_factor": round(total_s / clip_duration_s, 4) if clip_duration_s > 0 else None,
+        "peak_rss_mb": round(peak_bytes / (1024 * 1024), 2),
+        "model_size_mb": round(sum(m.size_mb for m in timeline.models), 3),
+        "config_hash": timeline.config_hash,
+        "git_commit": timeline.tool.git_commit,
+    }
+    with open(out / "metrics.json", "w", encoding="utf-8") as f:
+        json.dump(metrics, f, indent=2)
+
+    print(
+        json.dumps(
+            {"run_dir": out.as_posix(), "validation": validation, "metrics": metrics}, indent=2
+        )
+    )
 
 
 @app.command("validate-output", help="Validate run directory outputs.")
@@ -126,7 +170,8 @@ def validate_output(
     run_dir: Path = typer.Argument(..., help="Path to run directory."),
     verbose: bool = typer.Option(False, "--verbose", help="Enable verbose error output."),
 ) -> None:
-    raise ProcessingError(code="not_implemented")
+    result = run_validate_output(run_dir)
+    print(json.dumps(result, indent=2))
 
 
 @app.command("eval", help="Evaluate runs against ground truth labels.")

@@ -71,7 +71,7 @@ def test_cli_help_exits_zero():
 
 def test_cli_command_stub_exit_code_and_output():
     """CLI command stubs raise ProcessingError(code='not_implemented') exiting with code 4."""
-    cmd = [sys.executable, "-m", "reframe", "validate-output", "runs/dummy"]
+    cmd = [sys.executable, "-m", "reframe", "bench"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     assert result.returncode == 4
     # Without --verbose, only ERROR [code] message is printed, no traceback
@@ -81,7 +81,7 @@ def test_cli_command_stub_exit_code_and_output():
 
 def test_cli_verbose_prints_traceback():
     """With --verbose, the error handler prints ERROR [code] message AND the traceback."""
-    cmd = [sys.executable, "-m", "reframe", "validate-output", "runs/dummy", "--verbose"]
+    cmd = [sys.executable, "-m", "reframe", "bench", "--verbose"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     assert result.returncode == 4
     assert "ERROR [not_implemented] not implemented" in result.stderr
@@ -108,21 +108,39 @@ def test_cli_analyze_error_exit_code():
     assert "ERROR [file_not_found]" in result.stderr
 
 
+def test_cli_run_error_exit_code():
+    """`reframe run` on a missing file exits 2 (invalid input), not the old stub's 4."""
+    cmd = [
+        sys.executable, "-m", "reframe", "run", "missing_clip.mp4",
+        "--aspect", "9:16", "--out", "runs/test",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 2
+    assert "ERROR [file_not_found]" in result.stderr
+
+
+def test_cli_validate_output_error_exit_code():
+    """`reframe validate-output` on a run dir with no timeline exits 2, not the old stub's 4."""
+    cmd = [sys.executable, "-m", "reframe", "validate-output", "runs/dummy_nonexistent"]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 2
+    assert "ERROR [file_not_found]" in result.stderr
+
+
 @pytest.mark.parametrize(
     "cli_args",
     [
         ["render", "runs/test/decision_timeline.json", "--out", "runs/test/output.mp4"],
-        ["run", "video.mp4", "--aspect", "9:16", "--out", "runs/test"],
-        ["validate-output", "runs/test"],
         ["eval", "--runs", "runs", "--out", "eval_out"],
         ["bench", "--suite", "configs/bench.yaml", "--out", "evidence/bench"],
     ],
 )
 def test_remaining_command_stubs(cli_args):
-    """Remaining 5 pipeline commands are stubs raising ProcessingError(code='not_implemented').
+    """Remaining 3 pipeline commands are stubs raising ProcessingError(code='not_implemented').
 
-    `analyze` is implemented as of CONTRACT §7/§8/§10/§13 phase; see test_analyze_error_exit_code
-    below for its (now real) exit-code behavior.
+    `analyze`, `run` and `validate-output` are implemented as of CONTRACT §11/§12/§13; see
+    test_analyze_error_exit_code, test_cli_run_error_exit_code and
+    test_cli_validate_output_error_exit_code for their (now real) exit-code behavior.
     """
     cmd = [sys.executable, "-m", "reframe"] + cli_args
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
