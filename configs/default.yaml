@@ -1,0 +1,51 @@
+analysis:
+  sample_fps: 10
+  analysis_width: 640
+  detector: mediapipe
+  min_face_conf: 0.5
+  max_faces: 4
+
+tracking:
+  iou_match: 0.3
+  min_hits: 2
+  max_missed_s: 0.7
+
+audio:
+  vad_aggressiveness: 2
+  speech_threshold: 0.5
+
+speaker:
+  strategy: largest_face
+  window_s: 0.8
+  min_hold_s: 1.2
+  switch_margin: 0.15
+  switch_confirm_s: 0.4
+  enter_conf: 0.35
+  fallback_conf: 0.2
+  fallback_enter_s: 0.6
+  lip_activity_norm: 0.05
+
+scene:
+  enabled: true
+  cut_threshold: 0.5
+  screen_edge_density: 0.08
+
+crop:
+  aspect: "9:16"
+  headroom: 0.38
+  deadzone_frac: 0.04
+  max_speed_frac_s: 0.5
+  smoothing_alpha: 0.15
+  safety_margin_frac: 0.1
+
+render:
+  crf: 20
+  preset: veryfast
+  fallback_style: blur_pad
+  debug_width: 960
+
+runtime:
+  seed: 1234
+  cache_dir: .cache
+  max_duration_s: 900
+  cv_threads: 0

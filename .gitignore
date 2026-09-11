@@ -1,0 +1,9 @@
+.venv/
+models/*.tflite
+models/*.task
+models/*.onnx
+.cache/
+runs/
+data/
+__pycache__/
+*.egg-info/
