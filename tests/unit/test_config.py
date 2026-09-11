@@ -8,7 +8,13 @@ from reframe.errors import InvalidInputError
 
 
 def test_default_config_loads():
-    """Default configuration loads with exact values from CONTRACT §17."""
+    """Default configuration loads with exact values from CONTRACT §17.
+
+    speaker.strategy is the one deliberate deviation: tuned from the
+    contract's literal "largest_face" starting point to "av_heuristic" once
+    audio/lip features made it usable (§17 configs are explicitly "STARTING
+    points, tuned only on dev clips").
+    """
     cfg = load_config()
     assert isinstance(cfg, Config)
 
@@ -29,7 +35,7 @@ def test_default_config_loads():
     assert cfg.audio.speech_threshold == 0.5
 
     # speaker
-    assert cfg.speaker.strategy == "largest_face"
+    assert cfg.speaker.strategy == "av_heuristic"
     assert cfg.speaker.window_s == 0.8
     assert cfg.speaker.min_hold_s == 1.2
     assert cfg.speaker.switch_margin == 0.15

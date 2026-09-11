@@ -277,7 +277,9 @@ def render(
     def _crop_for(i: int):
         return crops_sorted[i] if i < n_crops else crops_sorted[-1]
 
-    tracks_by_id = {tr.track_id: tr for tr in timeline.face_tracks}
+    # box_at() expects plain dicts (it's shared with the live tracker in analyze.py);
+    # timeline.face_tracks are pydantic FaceTrack models, so convert once up front.
+    tracks_by_id = {tr.track_id: tr.model_dump() for tr in timeline.face_tracks}
     sample_fps = timeline.analysis.sample_fps
     n_ticks = len(timeline.decisions)
 

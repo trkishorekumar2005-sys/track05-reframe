@@ -15,7 +15,7 @@ audio:
   speech_threshold: 0.5
 
 speaker:
-  strategy: largest_face
+  strategy: av_heuristic
   window_s: 0.8
   min_hold_s: 1.2
   switch_margin: 0.15

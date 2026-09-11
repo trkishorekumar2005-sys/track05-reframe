@@ -61,6 +61,20 @@ def _tick_times(start_s: float, end_s: float, sample_fps: float) -> list[float]:
     return times
 
 
+def _attach_scores_to_tracks(
+    tracks: list[dict], tick_times: list[float], scores_per_tick: list[dict[int, float]]
+) -> None:
+    """Write each tick's {track_id: score} onto that track's sample (in place)."""
+    samples_by_track: dict[int, dict[float, dict]] = {
+        tr["track_id"]: {s["t"]: s for s in tr["samples"]} for tr in tracks
+    }
+    for k, t in enumerate(tick_times):
+        for tid, score in scores_per_tick[k].items():
+            sample = samples_by_track.get(tid, {}).get(t)
+            if sample is not None:
+                sample["score"] = round(float(score), 3)
+
+
 def _models_info(names: list[str]) -> list[dict]:
     import json
 
@@ -196,6 +210,7 @@ def analyze(
     # --- Scoring ---
     t_score_start = time.perf_counter()
     scores_per_tick = score_ticks(tracks, tick_times, cfg.speaker.strategy, cfg, audio=audio_features)
+    _attach_scores_to_tracks(tracks, tick_times, scores_per_tick)
     score_s = time.perf_counter() - t_score_start
     logger.info(
         f"scoring done in {score_s:.3f}s",
