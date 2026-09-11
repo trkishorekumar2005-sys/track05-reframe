@@ -1,13 +1,16 @@
 """CLI interface for reframe per CONTRACT §16."""
 
 import functools
+import json
 from pathlib import Path
 import sys
 import traceback
 from typing import Optional
 import typer
 
+from reframe.config import load_config
 from reframe.errors import ProcessingError, ReframeError
+from reframe.probe import probe
 
 
 def handle_cli_error(e: Exception, verbose: bool = False) -> None:
@@ -60,7 +63,12 @@ def validate(
     input: Path = typer.Argument(..., help="Path to input video file."),
     verbose: bool = typer.Option(False, "--verbose", help="Enable verbose error output."),
 ) -> None:
-    raise ProcessingError(code="not_implemented")
+    cfg = load_config()
+    info = probe(input, cfg)
+    print(json.dumps(info.model_dump(), indent=2))
+    if info.warnings:
+        for w in info.warnings:
+            sys.stderr.write(f"WARNING: {w}\n")
 
 
 @app.command("analyze", help="Analyze video and generate decision timeline.")

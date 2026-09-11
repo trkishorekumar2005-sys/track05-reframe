@@ -71,7 +71,7 @@ def test_cli_help_exits_zero():
 
 def test_cli_command_stub_exit_code_and_output():
     """CLI command stubs raise ProcessingError(code='not_implemented') exiting with code 4."""
-    cmd = [sys.executable, "-m", "reframe", "validate", "dummy.mp4"]
+    cmd = [sys.executable, "-m", "reframe", "validate-output", "runs/dummy"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     assert result.returncode == 4
     # Without --verbose, only ERROR [code] message is printed, no traceback
@@ -81,7 +81,7 @@ def test_cli_command_stub_exit_code_and_output():
 
 def test_cli_verbose_prints_traceback():
     """With --verbose, the error handler prints ERROR [code] message AND the traceback."""
-    cmd = [sys.executable, "-m", "reframe", "validate", "dummy.mp4", "--verbose"]
+    cmd = [sys.executable, "-m", "reframe", "validate-output", "runs/dummy", "--verbose"]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     assert result.returncode == 4
     assert "ERROR [not_implemented] not implemented" in result.stderr
@@ -89,10 +89,17 @@ def test_cli_verbose_prints_traceback():
     assert "ProcessingError" in result.stderr
 
 
+def test_cli_validate_error_exit_code():
+    """`reframe validate` with missing file exits with code 2 and prints ERROR [file_not_found]."""
+    cmd = [sys.executable, "-m", "reframe", "validate", "missing_clip.mp4"]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 2
+    assert "ERROR [file_not_found]" in result.stderr
+
+
 @pytest.mark.parametrize(
     "cli_args",
     [
-        ["validate", "video.mp4"],
         ["analyze", "video.mp4", "--aspect", "9:16", "--out", "runs/test"],
         ["render", "runs/test/decision_timeline.json", "--out", "runs/test/output.mp4"],
         ["run", "video.mp4", "--aspect", "9:16", "--out", "runs/test"],
@@ -101,8 +108,8 @@ def test_cli_verbose_prints_traceback():
         ["bench", "--suite", "configs/bench.yaml", "--out", "evidence/bench"],
     ],
 )
-def test_all_seven_commands_stubs(cli_args):
-    """Every one of the 7 commands is a stub raising ProcessingError(code='not_implemented')."""
+def test_remaining_command_stubs(cli_args):
+    """Remaining 6 pipeline commands are stubs raising ProcessingError(code='not_implemented')."""
     cmd = [sys.executable, "-m", "reframe"] + cli_args
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     assert result.returncode == 4
