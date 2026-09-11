@@ -115,6 +115,20 @@ class IoUTracker:
                 self._active.append(_Track(self._next_id, t, det))
                 self._next_id += 1
 
+    def current_samples(self, t: float) -> dict[int, dict]:
+        """Live sample dicts for tracks matched exactly at tick `t` (not a carried-over grace tick).
+
+        Returned dicts are the tracker's own mutable sample objects, so callers
+        (e.g. lips.py integration in analyze.py) can fill in fields such as
+        `mouth_open` in place once computed for this tick.
+        """
+        t = float(t)
+        return {
+            tr.track_id: tr.samples[-1]
+            for tr in self._active
+            if abs(tr.last_t - t) < 1e-9
+        }
+
     def finalize(self) -> list[dict]:
         """Flush remaining active tracks and return confirmed tracks (hits >= min_hits)."""
         self._finished.extend(self._active)

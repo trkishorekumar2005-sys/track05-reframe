@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import logging
 import time
@@ -9,13 +10,16 @@ from pathlib import Path
 from typing import Optional, Union
 
 from reframe import __version__
+from reframe.audio import AudioFeatures, compute_audio_features
 from reframe.cache import StageCache
 from reframe.config import Config, config_hash
 from reframe.crop import crop_size, plan_crops
 from reframe.decide import build_fallback_periods, build_speaker_segments, decide
 from reframe.detect import make_detector
 from reframe.ffmpeg_utils import FrameReader
+from reframe.lips import make_mouth_analyzer
 from reframe.probe import probe
+from reframe.scene import SceneAnalyzer
 from reframe.score import score_ticks
 from reframe.timeline import (
     AnalysisInfo,
@@ -80,22 +84,6 @@ def _models_info(names: list[str]) -> list[dict]:
     return out
 
 
-def _vad_segments(tick_times: list[float], vad_ticks: list[float], threshold: float) -> list[dict]:
-    segments: list[dict] = []
-    start_idx: Optional[int] = None
-    for i, v in enumerate(vad_ticks):
-        speech = v >= threshold
-        if speech:
-            if start_idx is None:
-                start_idx = i
-        elif start_idx is not None:
-            segments.append({"start": tick_times[start_idx], "end": tick_times[i - 1]})
-            start_idx = None
-    if start_idx is not None:
-        segments.append({"start": tick_times[start_idx], "end": tick_times[-1]})
-    return segments
-
-
 def analyze(
     input_path: Union[Path, str],
     aspect: str,
@@ -127,14 +115,27 @@ def analyze(
     cfg_hash = config_hash(cfg)
     cache = StageCache(cfg.runtime.cache_dir, info.sha256, cfg_hash, start_s, end_s)
 
-    # --- Vision stage (detect + track), cached ---
+    # --- Vision stage (detect + track + lips) and scene stage, cached ---
+    # Computed together in one frame-decode pass but cached as separate stage
+    # blobs, matching cache.STAGES = ("vision", "audio", "scene").
     t_vision_start = time.perf_counter()
     cached_vision = cache.load("vision") if resume else None
-    if cached_vision is not None:
+    cached_scene = cache.load("scene") if resume else None
+    if cached_vision is not None and cached_scene is not None:
         tracks = cached_vision["tracks"]
+        is_cut_ticks = cached_scene["is_cut"]
+        is_screen_content_ticks = cached_scene["is_screen_content"]
     else:
         detector = make_detector(cfg, scale)
         tracker = IoUTracker(cfg)
+        mouth_analyzer = make_mouth_analyzer(cfg, scale)
+        scene_analyzer = SceneAnalyzer(cfg)
+        # Fixed-size, tick-indexed (not append-as-decoded): FrameReader's real
+        # decoded frame count can be off by one from the tick_times formula
+        # near the clip's tail, so index by `i` and leave any missing tail
+        # tick at its safe default rather than shortening these arrays.
+        is_cut_ticks: list[bool] = [False] * n_ticks
+        is_screen_content_ticks: list[bool] = [False] * n_ticks
         try:
             with FrameReader(
                 input_path,
@@ -146,33 +147,62 @@ def analyze(
                 log_file=out_dir / "logs" / "ffmpeg_analysis.log",
                 mode="analysis",
             ) as reader:
-                for _, t, frame in reader:
+                for i, t, frame in reader:
                     t_ms = int(round(t * 1000))
                     detections = detector.detect(frame, t_ms)
                     tracker.update(t, detections)
+
+                    samples_this_tick = tracker.current_samples(t)
+                    track_boxes = {tid: s["bbox"] for tid, s in samples_this_tick.items()}
+                    mouth_by_track = mouth_analyzer.analyze(frame, t_ms, track_boxes)
+                    for tid, mouth_open in mouth_by_track.items():
+                        if tid in samples_this_tick:
+                            samples_this_tick[tid]["mouth_open"] = round(float(mouth_open), 3)
+
+                    if i < n_ticks:
+                        is_cut, is_screen_content = scene_analyzer.analyze(
+                            frame, n_faces=len(detections)
+                        )
+                        is_cut_ticks[i] = is_cut
+                        is_screen_content_ticks[i] = is_screen_content
         finally:
             detector.close()
+            mouth_analyzer.close()
         tracks = tracker.finalize()
         cache.save("vision", {"tracks": tracks})
+        cache.save("scene", {"is_cut": is_cut_ticks, "is_screen_content": is_screen_content_ticks})
     vision_s = time.perf_counter() - t_vision_start
     logger.info(
         f"vision stage done in {vision_s:.3f}s ({len(tracks)} confirmed tracks)",
         extra={"stage": "vision", "event": "stage_complete", "duration_s": vision_s},
     )
 
+    # --- Audio stage (VAD + energy), cached ---
+    t_audio_start = time.perf_counter()
+    cached_audio = cache.load("audio") if resume else None
+    if cached_audio is not None:
+        audio_features = AudioFeatures(**cached_audio)
+    else:
+        audio_features = compute_audio_features(
+            info, cfg, tick_times, eff_start, eff_end, out_dir / "logs"
+        )
+        cache.save("audio", dataclasses.asdict(audio_features))
+    audio_s = time.perf_counter() - t_audio_start
+    logger.info(
+        f"audio stage done in {audio_s:.3f}s",
+        extra={"stage": "audio", "event": "stage_complete", "duration_s": audio_s},
+    )
+
     # --- Scoring ---
     t_score_start = time.perf_counter()
-    scores_per_tick = score_ticks(tracks, tick_times, cfg.speaker.strategy, cfg, audio=None)
+    scores_per_tick = score_ticks(tracks, tick_times, cfg.speaker.strategy, cfg, audio=audio_features)
     score_s = time.perf_counter() - t_score_start
     logger.info(
         f"scoring done in {score_s:.3f}s",
         extra={"stage": "score", "event": "stage_complete", "duration_s": score_s},
     )
 
-    # --- Audio (VAD) and scene: not implemented yet; safe placeholders ---
-    vad_ticks = [0.0] * n_ticks
-    is_cut_ticks = [False] * n_ticks
-    is_screen_content_ticks = [False] * n_ticks
+    vad_ticks = audio_features.vad
 
     # --- Decide ---
     t_decide_start = time.perf_counter()
@@ -197,7 +227,7 @@ def analyze(
     )
 
     scene_cuts = [t for t, cut in zip(tick_times, is_cut_ticks) if cut]
-    vad_segs = _vad_segments(tick_times, vad_ticks, cfg.audio.speech_threshold)
+    vad_segs = audio_features.vad_segments
 
     # --- Crop planning ---
     t_crop_start = time.perf_counter()
@@ -232,7 +262,7 @@ def analyze(
         },
     )
 
-    warnings = list(info.warnings)
+    warnings = list(dict.fromkeys(info.warnings + audio_features.warnings))
 
     analysis_s = time.perf_counter() - t_analysis_start
 
@@ -244,7 +274,7 @@ def analyze(
         segment=SegmentInfo(start_s=eff_start, end_s=eff_end),
         config_hash=cfg_hash,
         config=cfg,
-        models=[ModelEntry(**m) for m in _models_info(["blaze_face_short_range"])],
+        models=[ModelEntry(**m) for m in _models_info(["blaze_face_short_range", "face_landmarker"])],
         analysis=AnalysisInfo(
             sample_fps=cfg.analysis.sample_fps,
             analysis_width=out_w,
