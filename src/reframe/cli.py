@@ -8,8 +8,10 @@ import traceback
 from typing import Optional
 import typer
 
+from reframe.analyze import analyze as run_analyze
 from reframe.config import load_config
 from reframe.errors import ProcessingError, ReframeError
+from reframe.log import setup_logging
 from reframe.probe import probe
 
 
@@ -84,7 +86,10 @@ def analyze(
     resume: bool = typer.Option(False, "--resume", help="Resume from stage cache if present."),
     verbose: bool = typer.Option(False, "--verbose", help="Enable verbose error output."),
 ) -> None:
-    raise ProcessingError(code="not_implemented")
+    setup_logging(out, verbose)
+    cfg = load_config(config, set_)
+    timeline_path = run_analyze(input, aspect, out, cfg, start_s=start, end_s=end, resume=resume)
+    print(json.dumps({"decision_timeline": timeline_path.as_posix()}, indent=2))
 
 
 @app.command("render", help="Render reframed video from timeline.")

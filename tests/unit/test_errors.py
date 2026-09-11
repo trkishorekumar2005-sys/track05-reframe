@@ -97,10 +97,20 @@ def test_cli_validate_error_exit_code():
     assert "ERROR [file_not_found]" in result.stderr
 
 
+def test_cli_analyze_error_exit_code():
+    """`reframe analyze` on a missing file exits 2 (invalid input), not the old stub's 4."""
+    cmd = [
+        sys.executable, "-m", "reframe", "analyze", "missing_clip.mp4",
+        "--aspect", "9:16", "--out", "runs/test",
+    ]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 2
+    assert "ERROR [file_not_found]" in result.stderr
+
+
 @pytest.mark.parametrize(
     "cli_args",
     [
-        ["analyze", "video.mp4", "--aspect", "9:16", "--out", "runs/test"],
         ["render", "runs/test/decision_timeline.json", "--out", "runs/test/output.mp4"],
         ["run", "video.mp4", "--aspect", "9:16", "--out", "runs/test"],
         ["validate-output", "runs/test"],
@@ -109,7 +119,11 @@ def test_cli_validate_error_exit_code():
     ],
 )
 def test_remaining_command_stubs(cli_args):
-    """Remaining 6 pipeline commands are stubs raising ProcessingError(code='not_implemented')."""
+    """Remaining 5 pipeline commands are stubs raising ProcessingError(code='not_implemented').
+
+    `analyze` is implemented as of CONTRACT §7/§8/§10/§13 phase; see test_analyze_error_exit_code
+    below for its (now real) exit-code behavior.
+    """
     cmd = [sys.executable, "-m", "reframe"] + cli_args
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
     assert result.returncode == 4
