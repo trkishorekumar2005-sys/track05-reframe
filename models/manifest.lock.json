@@ -1,0 +1,14 @@
+{
+  "blaze_face_short_range": {
+    "filename": "blaze_face_short_range.tflite",
+    "sha256": "b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f",
+    "size_bytes": 229746,
+    "size_mb": 0.219
+  },
+  "face_landmarker": {
+    "filename": "face_landmarker.task",
+    "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff",
+    "size_bytes": 3758596,
+    "size_mb": 3.584
+  }
+}
