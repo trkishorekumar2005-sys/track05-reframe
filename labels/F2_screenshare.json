@@ -1,0 +1,9 @@
+{
+  "clip": "F1_offscreen.mp4",
+  "split": "test",
+  "people": {},
+  "intervals": [
+    {"start": 0.0, "end": 22.0, "expect": "FALLBACK"}
+  ],
+  "tolerance_s": 0.5
+}

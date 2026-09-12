@@ -10,10 +10,18 @@ from reframe.errors import InvalidInputError
 def test_default_config_loads():
     """Default configuration loads with exact values from CONTRACT §17.
 
-    speaker.strategy is the one deliberate deviation: tuned from the
-    contract's literal "largest_face" starting point to "av_heuristic" once
-    audio/lip features made it usable (§17 configs are explicitly "STARTING
-    points, tuned only on dev clips").
+    Two deliberate deviations from the contract's literal starting values,
+    both allowed by §17's "STARTING points, tuned only on dev clips":
+
+    - speaker.strategy: "largest_face" -> "av_heuristic" once audio/lip
+      features made it usable.
+    - analysis.min_face_conf: 0.5 -> 0.25. Verified via
+      tests/integration/test_detect_integration.py: raw blaze_face_short_range
+      confidence on tests/fixtures/single_small.mp4's real (correctly
+      decoded, correctly BGR->RGB converted) face never exceeds ~0.47 across
+      any sampled frame (median ~0.35), so 0.5 discarded every detection;
+      0.25 clears the true detection with margin on every frame while
+      staying well above the next-highest background-anchor scores (~0.17).
     """
     cfg = load_config()
     assert isinstance(cfg, Config)
@@ -22,7 +30,7 @@ def test_default_config_loads():
     assert cfg.analysis.sample_fps == 10
     assert cfg.analysis.analysis_width == 640
     assert cfg.analysis.detector == "mediapipe"
-    assert cfg.analysis.min_face_conf == 0.5
+    assert cfg.analysis.min_face_conf == 0.25
     assert cfg.analysis.max_faces == 4
 
     # tracking

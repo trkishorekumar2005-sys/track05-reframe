@@ -95,7 +95,9 @@ class MediaPipeDetector:
         self._last_t_ms = t_ms
 
         # Analysis frame is BGR uint8; MediaPipe SRGB expects contiguous RGB.
-        frame_rgb: np.ndarray = np.ascontiguousarray(frame_bgr[:, :, ::-1])
+        frame_rgb: np.ndarray = np.ascontiguousarray(
+            frame_bgr[:, :, ::-1], dtype=np.uint8
+        )
         h_a, w_a = frame_bgr.shape[:2]
 
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)

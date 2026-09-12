@@ -15,7 +15,7 @@ class AnalysisConfig(BaseModel):
     sample_fps: int = Field(10, gt=0, le=120)
     analysis_width: int = Field(640, ge=64, le=7680)
     detector: str = "mediapipe"
-    min_face_conf: float = Field(0.5, ge=0.0, le=1.0)
+    min_face_conf: float = Field(0.25, ge=0.0, le=1.0)
     max_faces: int = Field(4, ge=1, le=100)
 
 

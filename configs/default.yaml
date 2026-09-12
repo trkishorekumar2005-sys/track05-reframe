@@ -2,7 +2,7 @@ analysis:
   sample_fps: 10
   analysis_width: 640
   detector: mediapipe
-  min_face_conf: 0.5
+  min_face_conf: 0.25
   max_faces: 4
 
 tracking:
