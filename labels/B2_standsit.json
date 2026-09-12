@@ -1,0 +1,11 @@
+{
+  "clip": "E2_exit_reenter.mp4",
+  "split": "test",
+  "people": {"A": {"x_range": [5.0, 23.0]}},
+  "intervals": [
+    {"start": 5.0, "end": 15.0, "expect": "A"},
+    {"start": 16.0, "end": 17.0, "expect": "FALLBACK"},
+    {"start": 17.0, "end": 23.0, "expect": "A"}
+  ],
+  "tolerance_s": 0.5
+}

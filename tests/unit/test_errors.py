@@ -127,20 +127,28 @@ def test_cli_validate_output_error_exit_code():
     assert "ERROR [file_not_found]" in result.stderr
 
 
+def test_cli_eval_error_exit_code():
+    """`reframe eval` on a missing runs dir exits 2 (invalid input), not the old stub's 4."""
+    cmd = [sys.executable, "-m", "reframe", "eval", "--runs", "runs/dummy_nonexistent", "--out", "eval_out"]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    assert result.returncode == 2
+    assert "ERROR [dir_not_found]" in result.stderr
+
+
 @pytest.mark.parametrize(
     "cli_args",
     [
         ["render", "runs/test/decision_timeline.json", "--out", "runs/test/output.mp4"],
-        ["eval", "--runs", "runs", "--out", "eval_out"],
         ["bench", "--suite", "configs/bench.yaml", "--out", "evidence/bench"],
     ],
 )
 def test_remaining_command_stubs(cli_args):
-    """Remaining 3 pipeline commands are stubs raising ProcessingError(code='not_implemented').
+    """Remaining 2 pipeline commands are stubs raising ProcessingError(code='not_implemented').
 
-    `analyze`, `run` and `validate-output` are implemented as of CONTRACT §11/§12/§13; see
-    test_analyze_error_exit_code, test_cli_run_error_exit_code and
-    test_cli_validate_output_error_exit_code for their (now real) exit-code behavior.
+    `analyze`, `run`, `validate-output` and `eval` are implemented as of CONTRACT §11/§12/§13/§14;
+    see test_analyze_error_exit_code, test_cli_run_error_exit_code,
+    test_cli_validate_output_error_exit_code and test_cli_eval_error_exit_code for their (now real)
+    exit-code behavior.
     """
     cmd = [sys.executable, "-m", "reframe"] + cli_args
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)

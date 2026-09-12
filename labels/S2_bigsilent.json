@@ -1,0 +1,11 @@
+{
+  "clip": "S2_bigsilent.mp4",
+  "split": "test",
+  "people": {
+    "A": {"x_range": [0.0, 1.0]}
+  },
+  "intervals": [
+    {"start": 6.0, "end": 32.0, "expect": "A"}
+  ],
+  "tolerance_s": 0.5
+}

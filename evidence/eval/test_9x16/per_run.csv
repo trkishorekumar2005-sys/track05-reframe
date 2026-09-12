@@ -1,0 +1,5 @@
+run_dir,clip,labelled,split,visible_speaker_accuracy,visible_speaker_ticks,fallback_precision,fallback_recall,fallback_f1,confident_wrong_crop_rate,switch_latency_median_s,switch_latency_p90_s,switches_missed,crop_bound_violations_count,crop_bound_violations_pct,jitter_px_per_frame2,jitter_norm,p95_speed_px_per_frame,n_switches,switches_per_min,analysis_s,render_s,total_s,clip_duration_s,realtime_factor,peak_rss_mb,model_size_mb,config_hash,git_commit
+runs/test/F1_offscreen,F1_offscreen.mp4,True,test,,,1.0,1.0,1.0,0.0,,,0,0,0.0,,,,0,0.0,5.587,196.835,202.751,32.367,6.2641,455.2,3.803,356de7428084c494,
+runs/test/F3_broll,F3_broll.mp4,False,,,,,,,,,,,0,0.0,,,,0,0.0,,,,,,,,356de7428084c494,
+runs/test/S1_turns,S1_turns.mp4,True,test,0.0,424,0.0,,,,,,4,0,0.0,,,,0,0.0,,,,,,,,356de7428084c494,
+runs/test/S2_bigsilent,S2_bigsilent.mp4,True,test,0.0,255,0.0,,,,,,0,0,0.0,,,,0,0.0,6.086,195.636,202.044,32.367,6.2423,454.02,3.803,356de7428084c494,

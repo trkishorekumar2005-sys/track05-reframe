@@ -1,0 +1,14 @@
+{
+  "clip": "E3_interject_overlap.mp4",
+  "split": "test",
+  "people": {
+    "A": {"x_range": [0.0, 0.5]},
+    "B": {"x_range": [0.5, 1.0]}
+  },
+  "intervals": [
+    {"start": 0.0, "end": 6.0, "expect": "A"},
+    {"start": 6.0, "end": 9.0, "expect": "FALLBACK"},
+    {"start": 9.0, "end": 14.0, "expect": "B"}
+  ],
+  "tolerance_s": 0.5
+}

@@ -1,0 +1,3 @@
+run_dir,clip,labelled,split,visible_speaker_accuracy,visible_speaker_ticks,fallback_precision,fallback_recall,fallback_f1,confident_wrong_crop_rate,switch_latency_median_s,switch_latency_p90_s,switches_missed,crop_bound_violations_count,crop_bound_violations_pct,jitter_px_per_frame2,jitter_norm,p95_speed_px_per_frame,n_switches,switches_per_min,analysis_s,render_s,total_s,clip_duration_s,realtime_factor,peak_rss_mb,model_size_mb,config_hash,git_commit
+runs/compare/S2_av,S2_bigsilent.mp4,True,test,0.0,255,0.0,,,,,,0,0,0.0,,,,0,0.0,,,,,,,,356de7428084c494,
+runs/compare/S2_largest,S2_bigsilent.mp4,True,test,0.0,255,0.0,,,,,,0,0,0.0,,,,0,0.0,,,,,,,,92997fbb25ffa1e3,

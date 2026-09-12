@@ -11,6 +11,7 @@ import typer
 from reframe.analyze import analyze as run_analyze
 from reframe.config import load_config
 from reframe.errors import ProcessingError, ReframeError
+from reframe.eval.report import run_eval
 from reframe.log import setup_logging
 from reframe.probe import probe
 from reframe.render import render as run_render
@@ -182,7 +183,10 @@ def eval(
     out: Path = typer.Option(..., "--out", help="Output directory for evaluation results."),
     verbose: bool = typer.Option(False, "--verbose", help="Enable verbose error output."),
 ) -> None:
-    raise ProcessingError(code="not_implemented")
+    result = run_eval(runs, labels, out)
+    for w in result["warnings"]:
+        sys.stderr.write(f"WARNING: {w}\n")
+    print(json.dumps({"out": out.as_posix(), **{k: v for k, v in result.items() if k != "warnings"}}, indent=2))
 
 
 @app.command("bench", help="Run benchmark suite.")

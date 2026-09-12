@@ -1,0 +1,16 @@
+{
+  "clip": "S1_turns.mp4",
+  "split": "test",
+  "people": {
+    "A": {"x_range": [0.0, 0.5]},
+    "B": {"x_range": [0.5, 1.0]}
+  },
+  "intervals": [
+    {"start": 0.03, "end": 13.0, "expect": "A"},
+    {"start": 13.0, "end": 19.0, "expect": "B"},
+    {"start": 20.0, "end": 34.0, "expect": "A"},
+    {"start": 35.0, "end": 40.0, "expect": "B"},
+    {"start": 41.0, "end": 48.0, "expect": "A"}
+  ],
+  "tolerance_s": 0.5
+}
